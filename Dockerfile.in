@@ -1,0 +1,39 @@
+FROM golang:<GO_VERSION>-alpine AS base
+
+WORKDIR /app
+
+RUN adduser \
+    --disabled-password \
+    --gecos "" \
+    --home "/nonexistent" \
+    --shell "/sbin/nologin" \
+    --no-create-home \
+    --uid "10001" \
+    "appuser"
+
+COPY vendor vendor
+COPY go.mod go.sum main.go ./
+
+RUN GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -mod=vendor -o cfgenerator
+
+FROM scratch
+
+WORKDIR /app
+
+COPY --from=base /etc/passwd /etc/passwd
+COPY --from=base /etc/group /etc/group
+COPY --from=base /app/cfgenerator .
+
+USER appuser:appuser
+
+ARG GIT_REPOSITORY=
+ARG GIT_SHA=
+ARG CREATED_AT=
+
+LABEL org.opencontainers.image.created="$CREATED_AT" \
+      org.opencontainers.image.source="$GIT_REPOSITORY" \
+      org.opencontainers.image.revision="$GIT_SHA" \
+      org.opencontainers.image.title="Cfgenerator command line" \
+      org.opencontainers.image.description="Configure JSON files using JSONNET and configmap/secret folders"
+
+ENTRYPOINT ["/app/cfgenerator"]

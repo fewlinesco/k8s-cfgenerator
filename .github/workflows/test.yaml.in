@@ -1,0 +1,33 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    name: "build"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: "checkout code"
+        uses: actions/checkout@v2
+
+      - name: "setup go <GO_VERSION>"
+        uses: actions/setup-go@v2-beta
+        with:
+          go-version: "<GO_VERSION>"
+
+      - name: "run tests"
+        run: make test
+
+      - name: "build docker image"
+        run: make docker-build
+
+      - name: "authenticate on docker hub"
+        run: echo ${{ secrets.docker_password }} | docker login -u ${{ secrets.docker_username }} --password-stdin
+
+      - name: "push image to docker hub"
+        run: make docker-push
