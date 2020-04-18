@@ -12,7 +12,7 @@ We can mount the configurations as volumes and use a JSONNET template as input t
 
 `cfgenerator help` or [read this](/main.go#L18).
 
-Some [examples](/examples) are also available.
+Some [examples](/cmd/cfgenerator/examples) are also available.
 
 ## Testing
 

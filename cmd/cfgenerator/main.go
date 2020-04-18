@@ -1,32 +1,41 @@
 package main
 
 import (
-	"bytes"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 
-	"github.com/google/go-jsonnet"
+	"github.com/kdisneur/k8s-cfgenerator/cmd/cfgenerator/internal/interpreter"
+	"github.com/kdisneur/k8s-cfgenerator/cmd/cfgenerator/internal/volume"
 )
 
 const usageFmt = `Synopsis
 
-	%[1]s [volume-paths ...]
+	%[1]s [-interpreter=plain|jsonnet] [volume-paths ...]
 
 Description
 
-	Reads a JSONNET from STDIN and output a JSON in STDOUT.
+	Reads a content (plain text or JSONNET) from STDIN and output the result
+	to STDOUT (as a JSON or plain text).
 
 	It reads all files present in 'the volume-paths' folders and for each of
-	these files, sets the file name as a JSONNET extVar and the content of
-	the file as the value of the extVar.
+	these files, sets the file name as variable name and the content of the
+	file as value.
 
-	These JSONNET extVar variables are available in the JSONNET template
-	received from STDIN.
+Flags
+
+	-interpreter=plain|jsonnet
+	   When plain, interprets the input as plain text and use gotpl as
+	   variable system.
+
+	   When jsonnet, interprets the input as JSONNET and use extVar as
+	   variable system.
+
+	   By default it is set to jsonnet
 
 Arguments
 
@@ -66,16 +75,33 @@ Examples
 `
 
 func main() {
+	var cfg = struct {
+		InterpreterName string
+	}{
+		InterpreterName: "jsonnet",
+	}
+
 	flag.Usage = func() { fmt.Fprintf(flag.CommandLine.Output(), usageFmt, filepath.Base(os.Args[0])) }
+	flag.StringVar(&cfg.InterpreterName, "interpreter", cfg.InterpreterName, "")
+
 	flag.Parse()
 
-	if err := run(os.Stdin, os.Stdout, flag.Args()); err != nil {
+	if err := run(cfg.InterpreterName, os.Stdin, os.Stdout, flag.Args()); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
 
-func run(input *os.File, output io.Writer, volumes []string) error {
+func run(interpreterName string, input *os.File, output io.Writer, volumes []string) error {
+	runtime, err := interpreter.Get(interpreterName)
+	if err != nil {
+		if errors.Is(err, interpreter.ErrNotFound) {
+			return fmt.Errorf("unsupported interpreter '%s'", interpreterName)
+		}
+
+		return fmt.Errorf("unexpected error when getting interpreter: %v", err)
+	}
+
 	stat, err := input.Stat()
 	if err != nil {
 		return fmt.Errorf("can't read from input file: %v", err)
@@ -85,43 +111,9 @@ func run(input *os.File, output io.Writer, volumes []string) error {
 		return fmt.Errorf("empty input file")
 	}
 
-	var buf bytes.Buffer
-	vm := jsonnet.MakeVM()
 	for _, root := range volumes {
-		err := filepath.Walk(root, func(p string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-
-			if p == root && info.IsDir() {
-				return nil
-			}
-
-			if info.IsDir() {
-				return filepath.SkipDir
-			}
-
-			file, err := os.Open(p)
-			if err != nil {
-				return fmt.Errorf("can't open file %s: %v", p, err)
-			}
-			defer file.Close()
-
-			buf.Reset()
-			if _, err := io.Copy(&buf, file); err != nil {
-				return fmt.Errorf("can't read external variable: %s", p)
-			}
-
-			extVarName := filepath.Base(p)
-			extVarValue := strings.TrimSpace(buf.String())
-
-			vm.ExtVar(extVarName, extVarValue)
-
-			return nil
-		})
-
-		if err != nil {
-			return fmt.Errorf("can't read external variables: %v", err)
+		if err := volume.LoadAllVariables(runtime, root); err != nil {
+			return fmt.Errorf("can't read volume variables '%s': %v", root, err)
 		}
 	}
 
@@ -130,12 +122,12 @@ func run(input *os.File, output io.Writer, volumes []string) error {
 		return fmt.Errorf("can't read jsonnet template from STDIN: %v", err)
 	}
 
-	json, err := vm.EvaluateSnippet("", string(tpl))
+	content, err := runtime.Evaluate(string(tpl))
 	if err != nil {
 		return fmt.Errorf("can't evaluate jsonnet template: %v", err)
 	}
 
-	fmt.Fprint(output, json)
+	fmt.Fprint(output, content)
 
 	return nil
 }

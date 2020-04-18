@@ -12,9 +12,10 @@ RUN adduser \
     "appuser"
 
 COPY vendor vendor
-COPY go.mod go.sum main.go ./
+COPY go.mod go.sum ./
+COPY cmd cmd
 
-RUN GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -mod=vendor -o cfgenerator
+RUN GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build ./cmd/cfgenerator
 
 FROM scratch
 

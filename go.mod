@@ -1,6 +1,6 @@
-module github.com/kdisneur/apps-disneur-me-k8s/k8s-cfgenerator
+module github.com/kdisneur/k8s-cfgenerator
 
-go 1.13
+go 1.14
 
 require (
 	github.com/google/go-jsonnet v0.15.0

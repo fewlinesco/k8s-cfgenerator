@@ -15,9 +15,9 @@ DOCKER_SHA_IMAGE := $(DOCKER_IMAGE):$(DOCKER_TAG_PREFIX)-$(GIT_SHORT_SHA)
 DOCKER_LATEST_IMAGE := $(DOCKER_IMAGE):latest
 
 GO_BIN := go
-GO_STATICCHECK_BIN := $(GO_BIN) run -mod=vendor ./vendor/honnef.co/go/tools/cmd/staticcheck
+GO_STATICCHECK_BIN := $(GO_BIN) run ./vendor/honnef.co/go/tools/cmd/staticcheck
 GO_FMT_BIN := gofmt
-GO_LINT_BIN := $(GO_BIN) run -mod=vendor ./vendor/golang.org/x/lint/golint
+GO_LINT_BIN := $(GO_BIN) run ./vendor/golang.org/x/lint/golint
 GO_VERSION := $(shell awk '/^golang / {print $$2}' .tool-versions)
 
 GH_WORKFLOWS_TPL_DIR := .github/workflows
@@ -85,16 +85,16 @@ test-unit:
 
 test-fmt:
 	@echo "+ $@"
-	@test -z "$$($(GO_FMT_BIN) -l -e -s main.go | tee /dev/stderr)" || \
+	@test -z "$$($(GO_FMT_BIN) -l -e -s cmd | tee /dev/stderr)" || \
 	  ( >&2 echo "=> please format Go code with '$(GO_FMT_BIN) -s -w .'" && false)
 
 test-lint:
 	@echo "+ $@"
-	@test -z "$$($(GO_LINT_BIN) . | tee /dev/stderr)"
+	@test -z "$$($(GO_LINT_BIN) ./cmd/... | tee /dev/stderr)"
 
 test-staticcheck:
 	@echo "+ $@"
-	@$(GO_STATICCHECK_BIN) .
+	@$(GO_STATICCHECK_BIN) ./cmd/...
 
 test-tidy:
 	@echo "+ $@"
