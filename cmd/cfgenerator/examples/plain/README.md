@@ -1,7 +1,7 @@
 # Usage
 
 ```
-$> cfgenerator -interpreter=gotpl volumes/secrets volumes/config < config.conf.tpl
+$> cfgenerator -interpreter=plain volumes/secrets volumes/config < config.conf.tpl
 upstream api { server host.docker.internal:1337; }
 
 server {

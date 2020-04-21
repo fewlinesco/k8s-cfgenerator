@@ -2,7 +2,6 @@ package interpreter
 
 import (
 	"errors"
-	"fmt"
 )
 
 var (
@@ -14,7 +13,7 @@ var (
 
 func init() {
 	Register("jsonnet", func() Interpreter { return NewJsonnet() })
-	Register("plain", func() Interpreter { return NewGoTemplate() })
+	Register("plain", func() Interpreter { return NewPlain() })
 }
 
 // BuilderFunc represents a function that initialize a new Interpreter
@@ -25,14 +24,15 @@ func Register(name string, builderFunc BuilderFunc) {
 	interpreters[name] = builderFunc
 }
 
-// Get builds a new interpreter from its name or return a ErrNotFound error
-func Get(name string) (Interpreter, error) {
+// Get builds a new interpreter from its name and return a boolean indicating wether the interpreter
+// has been found
+func Get(name string) (Interpreter, bool) {
 	builder, found := interpreters[name]
 	if !found {
-		return nil, fmt.Errorf("%w", ErrNotFound)
+		return nil, false
 	}
 
-	return builder(), nil
+	return builder(), true
 }
 
 // Interpreter represents something able to aggregate variables and render templates

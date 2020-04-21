@@ -11,10 +11,10 @@ import (
 	"github.com/kdisneur/k8s-cfgenerator/cmd/cfgenerator/internal/interpreter"
 )
 
-// LoadAllVariables reads all the file in the root folder (or just the root file if it's
+// LoadAllVariables reads all the files in the root folder (or just the root file if it's
 // a file) and load all the variables into the runtime.
 //
-// The name of the file defines the variable name and the content of the file the value
+// The name of each file define the variable name and its content the value
 func LoadAllVariables(runtime interpreter.Interpreter, root string) error {
 	var buf bytes.Buffer
 

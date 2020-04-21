@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -93,13 +92,9 @@ func main() {
 }
 
 func run(interpreterName string, input *os.File, output io.Writer, volumes []string) error {
-	runtime, err := interpreter.Get(interpreterName)
-	if err != nil {
-		if errors.Is(err, interpreter.ErrNotFound) {
-			return fmt.Errorf("unsupported interpreter '%s'", interpreterName)
-		}
-
-		return fmt.Errorf("unexpected error when getting interpreter: %v", err)
+	runtime, found := interpreter.Get(interpreterName)
+	if !found {
+		return fmt.Errorf("unsupported interpreter '%s'", interpreterName)
 	}
 
 	stat, err := input.Stat()
@@ -119,12 +114,12 @@ func run(interpreterName string, input *os.File, output io.Writer, volumes []str
 
 	tpl, err := ioutil.ReadAll(input)
 	if err != nil {
-		return fmt.Errorf("can't read jsonnet template from STDIN: %v", err)
+		return fmt.Errorf("can't read template from STDIN: %v", err)
 	}
 
 	content, err := runtime.Evaluate(string(tpl))
 	if err != nil {
-		return fmt.Errorf("can't evaluate jsonnet template: %v", err)
+		return fmt.Errorf("can't evaluate template: %v", err)
 	}
 
 	fmt.Fprint(output, content)
