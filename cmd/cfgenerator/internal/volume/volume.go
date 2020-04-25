@@ -31,6 +31,12 @@ func LoadAllVariables(runtime interpreter.Interpreter, root string) error {
 			return filepath.SkipDir
 		}
 
+		if strings.HasPrefix(info.Name(), ".") {
+			// Skip hidden files. It's mostly due to the way ConfigMap and Secrets are
+			// mounted on Kubernetes
+			return nil
+		}
+
 		file, err := os.Open(p)
 		if err != nil {
 			return fmt.Errorf("can't open file %s: %v", p, err)
