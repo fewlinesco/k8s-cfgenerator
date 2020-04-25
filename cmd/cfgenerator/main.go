@@ -3,13 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
+	"github.com/kdisneur/k8s-cfgenerator/cmd/cfgenerator/internal"
+	"github.com/kdisneur/k8s-cfgenerator/cmd/cfgenerator/internal/file"
 	"github.com/kdisneur/k8s-cfgenerator/cmd/cfgenerator/internal/interpreter"
-	"github.com/kdisneur/k8s-cfgenerator/cmd/cfgenerator/internal/volume"
 )
 
 const usageFmt = `Synopsis
@@ -18,14 +17,18 @@ const usageFmt = `Synopsis
 
 Description
 
-	Reads a content (plain text or JSONNET) from STDIN and output the result
-	to STDOUT (as a JSON or plain text).
+	Reads a content (plain text or JSONNET) template and output the result
+	to a file (as a JSON or plain text).
 
 	It reads all files present in 'the volume-paths' folders and for each of
 	these files, sets the file name as variable name and the content of the
 	file as value.
 
 Flags
+
+	-in=<template-path>|-
+	   A path to the template to use as input. When using "-" input is STDIN.
+	   (Default: -)
 
 	-interpreter=plain|jsonnet
 	   When plain, interprets the input as plain text and use gotpl as
@@ -35,6 +38,10 @@ Flags
 	   variable system.
 
 	   By default it is set to jsonnet
+
+	-out=<file>|-
+	   A path to where to generate the file. When using "-" output is STDOUT.
+	   (Default: -)
 
 Arguments
 
@@ -69,60 +76,51 @@ Examples
 	   as JSONNET extvar. Then evaluates /app/config.jsonnet and generate a
 	   JSON in /app/config.json
 
-	   $> %[1]s /data/configmap /data/secrets < /app/confg.jsonnet > /app/config.json
+	   $> %[1]s -in /app/confg.jsonnet -out /app/config.json /data/configmap /data/secrets
 
 `
 
 func main() {
 	var cfg = struct {
 		InterpreterName string
+		In              string
+		Out             string
 	}{
 		InterpreterName: "jsonnet",
+		In:              "-",
+		Out:             "-",
 	}
 
 	flag.Usage = func() { fmt.Fprintf(flag.CommandLine.Output(), usageFmt, filepath.Base(os.Args[0])) }
 	flag.StringVar(&cfg.InterpreterName, "interpreter", cfg.InterpreterName, "")
+	flag.StringVar(&cfg.In, "in", cfg.In, "")
+	flag.StringVar(&cfg.Out, "out", cfg.Out, "")
 
 	flag.Parse()
 
-	if err := run(cfg.InterpreterName, os.Stdin, os.Stdout, flag.Args()); err != nil {
+	if err := run(cfg.InterpreterName, cfg.In, cfg.Out, flag.Args()); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
 
-func run(interpreterName string, input *os.File, output io.Writer, volumes []string) error {
+func run(interpreterName string, inputPath string, outputPath string, volumes []string) error {
 	runtime, found := interpreter.Get(interpreterName)
 	if !found {
 		return fmt.Errorf("unsupported interpreter '%s'", interpreterName)
 	}
 
-	stat, err := input.Stat()
+	input, err := file.OpenInput(inputPath)
 	if err != nil {
-		return fmt.Errorf("can't read from input file: %v", err)
+		return fmt.Errorf("can't open input file '%s': %v", inputPath, err)
 	}
+	defer input.Close()
 
-	if stat.Size() <= 0 {
-		return fmt.Errorf("empty input file")
-	}
-
-	for _, root := range volumes {
-		if err := volume.LoadAllVariables(runtime, root); err != nil {
-			return fmt.Errorf("can't read volume variables '%s': %v", root, err)
-		}
-	}
-
-	tpl, err := ioutil.ReadAll(input)
+	output, err := file.OpenOutput(outputPath)
 	if err != nil {
-		return fmt.Errorf("can't read template from STDIN: %v", err)
+		return fmt.Errorf("can't open output file '%s': %v", outputPath, err)
 	}
+	defer output.Close()
 
-	content, err := runtime.Evaluate(string(tpl))
-	if err != nil {
-		return fmt.Errorf("can't evaluate template: %v", err)
-	}
-
-	fmt.Fprint(output, content)
-
-	return nil
+	return internal.Generate(runtime, input, output, volumes)
 }
