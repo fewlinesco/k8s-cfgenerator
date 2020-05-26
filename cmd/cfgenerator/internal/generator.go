@@ -5,8 +5,8 @@ import (
 	"io"
 	"io/ioutil"
 
-	"github.com/kdisneur/k8s-cfgenerator/cmd/cfgenerator/internal/interpreter"
-	"github.com/kdisneur/k8s-cfgenerator/cmd/cfgenerator/internal/volume"
+	"github.com/fewlinesco/k8s-cfgenerator/cmd/cfgenerator/internal/interpreter"
+	"github.com/fewlinesco/k8s-cfgenerator/cmd/cfgenerator/internal/volume"
 )
 
 // Generate reads all the volumes to collect the variables and execute the template

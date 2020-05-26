@@ -6,9 +6,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/kdisneur/k8s-cfgenerator/cmd/cfgenerator/internal"
-	"github.com/kdisneur/k8s-cfgenerator/cmd/cfgenerator/internal/file"
-	"github.com/kdisneur/k8s-cfgenerator/cmd/cfgenerator/internal/interpreter"
+	"github.com/fewlinesco/k8s-cfgenerator/cmd/cfgenerator/internal"
+	"github.com/fewlinesco/k8s-cfgenerator/cmd/cfgenerator/internal/file"
+	"github.com/fewlinesco/k8s-cfgenerator/cmd/cfgenerator/internal/interpreter"
 )
 
 const usageFmt = `Synopsis

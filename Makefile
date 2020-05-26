@@ -9,7 +9,7 @@ GIT_SHA := $(shell $(GIT_BIN) rev-parse $(GIT_OBJECT))
 GIT_SHORT_SHA := $(shell $(GIT_BIN) rev-parse --short $(GIT_OBJECT))
 GIT_BRANCH := $(shell $(GIT_BIN) rev-parse --abbrev-ref $(GIT_OBJECT))
 
-DOCKER_IMAGE := kdisneur/cfgenerator
+DOCKER_IMAGE := fewlines/cfgenerator
 DOCKER_TAG_PREFIX := $(shell if [ $(GIT_BRANCH) = "master" ]; then echo "master"; elif echo $(GIT_BRANCH) | grep -Eo '[0-9]+'; then echo "$$($(GIT_BRANCH) | grep -Eo '[0-9]+')"; else echo "XXXX"; fi)
 DOCKER_SHA_IMAGE := $(DOCKER_IMAGE):$(DOCKER_TAG_PREFIX)-$(GIT_SHORT_SHA)
 DOCKER_LATEST_IMAGE := $(DOCKER_IMAGE):latest
