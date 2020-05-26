@@ -28,7 +28,7 @@ jobs:
         run: make docker-build
 
       - name: "authenticate on docker hub"
-        run: echo ${{ secrets.docker_password }} | docker login -u ${{ secrets.docker_username }} --password-stdin
+        run: echo '${{ secrets.docker_password }}' | docker login -u ${{ secrets.docker_username }} --password-stdin
 
       - name: "push image to docker hub"
         run: make docker-push
