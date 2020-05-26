@@ -1,4 +1,4 @@
-module github.com/kdisneur/k8s-cfgenerator
+module github.com/fewlinesco/k8s-cfgenerator
 
 go 1.14
 

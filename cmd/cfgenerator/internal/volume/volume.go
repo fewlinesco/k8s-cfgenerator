@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/kdisneur/k8s-cfgenerator/cmd/cfgenerator/internal/interpreter"
+	"github.com/fewlinesco/k8s-cfgenerator/cmd/cfgenerator/internal/interpreter"
 )
 
 // LoadAllVariables reads all the files in the root folder (or just the root file if it's

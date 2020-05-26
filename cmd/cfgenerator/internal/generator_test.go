@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kdisneur/k8s-cfgenerator/cmd/cfgenerator/internal"
-	"github.com/kdisneur/k8s-cfgenerator/cmd/cfgenerator/internal/interpreter"
+	"github.com/fewlinesco/k8s-cfgenerator/cmd/cfgenerator/internal"
+	"github.com/fewlinesco/k8s-cfgenerator/cmd/cfgenerator/internal/interpreter"
 )
 
 func getRuntime(t *testing.T, name string) interpreter.Interpreter {
