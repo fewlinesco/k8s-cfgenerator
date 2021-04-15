@@ -46,7 +46,7 @@ Flags
 
 	   Note that you can pass the flag several times if the goal is to write
 	   the configuration in several locations. It can be useful to add an
-	   additiona '-out=-' for debugging purpose for example.
+	   additional '-out=-' for debugging purpose for example.
 
 Arguments
 
