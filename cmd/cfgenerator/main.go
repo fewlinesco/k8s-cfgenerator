@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/fewlinesco/k8s-cfgenerator/cmd/cfgenerator/internal"
 	"github.com/fewlinesco/k8s-cfgenerator/cmd/cfgenerator/internal/file"
@@ -43,6 +44,10 @@ Flags
 	   A path to where to generate the file. When using "-" output is STDOUT.
 	   (Default: -)
 
+	   Note that you can pass the flag several times if the goal is to write
+	   the configuration in several locations. It can be useful to add an
+	   additional '-out=-' for debugging purpose for example.
+
 Arguments
 
 	[volume-paths ...]
@@ -80,31 +85,46 @@ Examples
 
 `
 
+type stringsFlag []string
+
+func (s *stringsFlag) String() string {
+	return strings.Join(*s, ", ")
+}
+
+func (s *stringsFlag) Set(value string) error {
+	*s = append(*s, value)
+
+	return nil
+}
+
 func main() {
 	var cfg = struct {
 		InterpreterName string
 		In              string
-		Out             string
+		Outs            stringsFlag
 	}{
 		InterpreterName: "jsonnet",
 		In:              "-",
-		Out:             "-",
 	}
 
 	flag.Usage = func() { fmt.Fprintf(flag.CommandLine.Output(), usageFmt, filepath.Base(os.Args[0])) }
 	flag.StringVar(&cfg.InterpreterName, "interpreter", cfg.InterpreterName, "")
 	flag.StringVar(&cfg.In, "in", cfg.In, "")
-	flag.StringVar(&cfg.Out, "out", cfg.Out, "")
+	flag.Var(&cfg.Outs, "out", "")
 
 	flag.Parse()
 
-	if err := run(cfg.InterpreterName, cfg.In, cfg.Out, flag.Args()); err != nil {
+	if len(cfg.Outs) == 0 {
+		cfg.Outs = append(cfg.Outs, "-")
+	}
+
+	if err := run(cfg.InterpreterName, cfg.In, cfg.Outs, flag.Args()); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }
 
-func run(interpreterName string, inputPath string, outputPath string, volumes []string) error {
+func run(interpreterName string, inputPath string, outputPaths []string, volumes []string) error {
 	runtime, found := interpreter.Get(interpreterName)
 	if !found {
 		return fmt.Errorf("unsupported interpreter '%s'", interpreterName)
@@ -116,11 +136,25 @@ func run(interpreterName string, inputPath string, outputPath string, volumes []
 	}
 	defer input.Close()
 
-	output, err := file.OpenOutput(outputPath)
+	content, err := internal.Generate(runtime, input, volumes)
 	if err != nil {
-		return fmt.Errorf("can't open output file '%s': %v", outputPath, err)
+		return fmt.Errorf("can't generate content: %v", err)
 	}
-	defer output.Close()
 
-	return internal.Generate(runtime, input, output, volumes)
+	outputs := make([]*os.File, len(outputPaths))
+	for i, outputPath := range outputPaths {
+		output, err := file.OpenOutput(outputPath)
+		if err != nil {
+			return fmt.Errorf("can't open output file '%s': %v", outputPath, err)
+		}
+		defer output.Close()
+
+		outputs[i] = output
+	}
+
+	for i := range outputs {
+		fmt.Fprint(outputs[i], content)
+	}
+
+	return nil
 }

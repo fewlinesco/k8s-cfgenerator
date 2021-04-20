@@ -4,7 +4,6 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/fewlinesco/k8s-cfgenerator/cmd/cfgenerator/internal"
@@ -69,14 +68,14 @@ func TestValidTemplates(t *testing.T) {
 			runtime := getRuntime(t, tc.RuntimeName)
 			input := openInput(t, tc.InputPath)
 			expectedOutput := readExpectedOutput(t, tc.ExpectedOutputPath)
-			var output strings.Builder
 
-			if err := internal.Generate(runtime, input, &output, tc.Volumes); err != nil {
+			output, err := internal.Generate(runtime, input, tc.Volumes)
+			if err != nil {
 				t.Fatal(err)
 			}
 
-			if expectedOutput != output.String() {
-				t.Fatalf("invalid output\nexpected:\n'%s'\nactual:\n'%s'\n", expectedOutput, output.String())
+			if expectedOutput != output {
+				t.Fatalf("invalid output\nexpected:\n'%s'\nactual:\n'%s'\n", expectedOutput, output)
 			}
 		})
 	}

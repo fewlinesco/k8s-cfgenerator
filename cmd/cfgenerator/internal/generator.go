@@ -10,24 +10,22 @@ import (
 )
 
 // Generate reads all the volumes to collect the variables and execute the template
-func Generate(runtime interpreter.Interpreter, input io.Reader, output io.Writer, volumes []string) error {
+func Generate(runtime interpreter.Interpreter, input io.Reader, volumes []string) (string, error) {
 	for _, root := range volumes {
 		if err := volume.LoadAllVariables(runtime, root); err != nil {
-			return fmt.Errorf("can't read volume variables '%s': %v", root, err)
+			return "", fmt.Errorf("can't read volume variables '%s': %v", root, err)
 		}
 	}
 
 	tpl, err := ioutil.ReadAll(input)
 	if err != nil {
-		return fmt.Errorf("can't read template: %v", err)
+		return "", fmt.Errorf("can't read template: %v", err)
 	}
 
 	content, err := runtime.Evaluate(string(tpl))
 	if err != nil {
-		return fmt.Errorf("can't evaluate template: %v", err)
+		return "", fmt.Errorf("can't evaluate template: %v", err)
 	}
 
-	fmt.Fprint(output, content)
-
-	return nil
+	return content, nil
 }
